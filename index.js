@@ -3,18 +3,19 @@
 const net = require('net');
 
 const HTTP_VERSION = 1.1;
+const CRLF = '\r\n';
 
 function serializeHeaders(obj) {
   return Object
     .keys(obj)
     .map((key) => `${key}: ${obj[key]}`)
-    .join('\r\n');
+    .join(CRLF);
 }
 
 function deserializeHeaders(str) {
   return str
     .trim()
-    .split('\r\n')
+    .split(CRLF)
     .reduce((headers, row) => {
       const [ key, value ] = row.split(':');
       headers[key] = value.trimLeft();
@@ -46,12 +47,17 @@ function parseResponseMessage(responseMessage) {
 function get(uri, options = {}) {
   const url = new URL(uri);
 
-  const headersStr = serializeHeaders(Object.assign(
+  const headers = serializeHeaders(Object.assign(
     options.headers || {},
     { Host: url.host },
   ));
 
-  const message = `GET ${url.pathname} HTTP/${HTTP_VERSION}\r\n${headersStr}\r\n\r\n`;
+  const message = [
+    `GET ${url.pathname} HTTP/${HTTP_VERSION}`,
+    headers,
+    '',
+    options.body || '',
+  ].join(CRLF);
 
   const client = net.connect(url.port || 80, url.host, () => {
     client.write(message);
