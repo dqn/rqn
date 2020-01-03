@@ -1,12 +1,11 @@
 'use strict';
 
 const net = require('net');
+const { buildRequestMessage, parseResponseMessage } = require('./lib/util');
 
-const { buildRequestMessage, parseResponseMessage } = require('./lib/common');
-
-function get(uri, options = {}) {
+function request(method, uri, options) {
   const url = new URL(uri);
-  const message = buildRequestMessage('GET', url, options);
+  const message = buildRequestMessage(method, url, options);
 
   const client = net.connect(url.port || 80, url.hostname, () => {
     client.write(message);
@@ -21,40 +20,20 @@ function get(uri, options = {}) {
 
   return new Promise((resolve, reject) => {
     client.on('end', () => {
-      const message = Buffer.concat(buffers).toString();
-      resolve(parseResponseMessage(message));
+      const response = parseResponseMessage(Buffer.concat(buffers).toString());
+      resolve(response);
     });
 
     client.on('error', reject);
   });
 }
 
+function get(uri, options = {}) {
+  return request('GET', uri, options);
+}
+
 function post(uri, options = {}) {
-  const url = new URL(uri);
-  console.log(options);
-  const message = buildRequestMessage('POST', url, options);
-
-  console.log(message);
-
-  const client = net.connect(url.port || 80, url.hostname, () => {
-    client.write(message);
-  });
-
-  const buffers = [];
-
-  client.on('data', (data) => {
-    buffers.push(data);
-    client.end();
-  });
-
-  return new Promise((resolve, reject) => {
-    client.on('end', () => {
-      const message = Buffer.concat(buffers).toString();
-      resolve(parseResponseMessage(message));
-    });
-
-    client.on('error', reject);
-  });
+  return request('POST', uri, options);
 }
 
 module.exports = {
