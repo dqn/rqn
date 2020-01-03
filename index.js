@@ -2,6 +2,26 @@
 
 const net = require('net');
 
+const HTTP_VERSION = 1.1;
+
+function serializeHeaders(obj) {
+  return Object
+    .keys(obj)
+    .map((key) => `${key}: ${obj[key]}`)
+    .join('\r\n');
+}
+
+function deserializeHeaders(str) {
+  return str
+    .trim()
+    .split('\r\n')
+    .reduce((headers, row) => {
+      const [ key, value ] = row.split(':');
+      headers[key] = value.trimLeft();
+      return headers;
+    }, {});
+}
+
 function parseResponseMessage(responseMessage) {
   const re = /^(.+?)\r\n(.+)?\r\n\r\n(.+)/s;
   const splitted = responseMessage.match(re).slice(1);
@@ -10,11 +30,7 @@ function parseResponseMessage(responseMessage) {
   const [ _, statusCode, message ] = splitted.shift().split(' ');
 
   // headers
-  const headers = {};
-  for (const row of splitted.shift().split('\r\n')) {
-    const [ key, value ] = row.split(': ');
-    headers[key] = value;
-  }
+  const headers = deserializeHeaders(splitted.shift());
 
   // body
   const body = splitted.shift();
@@ -27,11 +43,17 @@ function parseResponseMessage(responseMessage) {
   };
 }
 
-function get(uri) {
+function get(uri, options = {}) {
   const url = new URL(uri);
 
-  const client = net.connect((url.port || 80), url.host, () => {
-    const message = `GET ${url.pathname} HTTP/1.1\r\nHost:${url.host}\r\n\r\n`;
+  const headersStr = serializeHeaders(Object.assign(
+    options.headers || {},
+    { Host: url.host },
+  ));
+
+  const message = `GET ${url.pathname} HTTP/${HTTP_VERSION}\r\n${headersStr}\r\n\r\n`;
+
+  const client = net.connect(url.port || 80, url.host, () => {
     client.write(message);
   });
 
@@ -47,7 +69,7 @@ function get(uri) {
       const message = Buffer.concat(buffers).toString();
       resolve(parseResponseMessage(message));
     });
-  
+
     client.on('error', reject);
   });
 }
