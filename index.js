@@ -6,21 +6,29 @@ const tls = require('tls');
 const CRLF = '\r\n';
 const HTTP_VERSION = 1.1;
 
-function serializeQueryParams(obj) {
+function splitOnlyOnce(str, delimiter) {
+  const indexToSplit = str.indexOf(delimiter);
+  const first = str.slice(0, indexToSplit);
+  const second = str.slice(indexToSplit + delimiter.length);
+
+  return [ first, second ];
+}
+
+function buildQueryParams(obj) {
   return Object
     .entries(obj)
     .map(([ key, value ]) => `${key}=${encodeURIComponent(value)}`)
     .join('&');
 }
 
-function serializeHeaders(obj) {
+function buildHeaders(obj) {
   return Object
     .entries(obj)
     .map(([ key, value ]) => `${key}: ${value}`)
     .join(CRLF);
 }
 
-function deserializeHeaders(str) {
+function parseHeaders(str) {
   return str
     .trim()
     .split(CRLF)
@@ -37,7 +45,7 @@ function buildRequestMessage(method, url, options = {}) {
   let qs = url.search;
 
   if (options.qs) {
-    qs = '?' + serializeQueryParams(options.qs);
+    qs = '?' + buildQueryParams(options.qs);
   }
 
   if (options.body) {
@@ -47,7 +55,7 @@ function buildRequestMessage(method, url, options = {}) {
   }
 
   if (options.form) {
-    body = serializeQueryParams(options.form);
+    body = buildQueryParams(options.form);
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers['Content-Length'] = Buffer.byteLength(body);
   }
@@ -60,25 +68,19 @@ function buildRequestMessage(method, url, options = {}) {
 
   return [
     `${method} ${url.pathname}${qs} HTTP/${HTTP_VERSION}`,
-    serializeHeaders(headers),
+    buildHeaders(headers),
     '',
     body,
   ].join(CRLF);
 }
 
-function parseResponseMessage(responseMessage) {
-  const splitted = responseMessage.match(/^(.+?)\r\n(.+?)\r\n\r\n(.+)/s).slice(1);
+function parseResponseMessage(union) {
+  const [ statusAndHeaders, body ] = splitOnlyOnce(union, CRLF + CRLF);
+  const splitted = splitOnlyOnce(statusAndHeaders, CRLF);
+  const statusCode = Number(splitted[0].match(/\d{3}/)[0]);
+  const headers = parseHeaders(splitted[1]);
 
-  const [ statusCode, message ] = splitted.shift().match(/^.+? (.+?) (.+)/).slice(1);
-  const headers = deserializeHeaders(splitted.shift());
-  const body = splitted.shift();
-
-  return {
-    statusCode: Number(statusCode),
-    message,
-    headers,
-    body,
-  };
+  return { statusCode, headers, body };
 }
 
 function makeSocket(url) {
@@ -108,16 +110,6 @@ function makeSocket(url) {
   };
 }
 
-function splitIntoHeadersAndBody(union) {
-  const blankLine = '\r\n\r\n';
-  console.log(blankLine.length);
-  const indexToSplit = union.indexOf(blankLine);
-  const headers = union.slice(0, indexToSplit);
-  const body = union.slice(indexToSplit + blankLine.length);
-
-  return { headers, body };
-}
-
 function request(method, uri, options) {
   const url = new URL(uri);
   const socket = makeSocket(url);
@@ -141,6 +133,7 @@ function request(method, uri, options) {
     client.on('end', () => {
       const response = parseResponseMessage(Buffer.concat(buffers).toString());
       console.log(Buffer.concat(buffers).toString());
+      console.log(response);
       resolve(response);
     });
 
