@@ -105,7 +105,9 @@ function makeSocket(url) {
 
   return {
     connect(connectionListener) {
-      return socketModule.connect(options, connectionListener);
+      return socketModule
+        .connect(options, connectionListener)
+        .setEncoding('utf8');
     },
   };
 }
@@ -119,21 +121,32 @@ function request(method, uri, options) {
     client.write(message);
   });
 
-  const buffers = [];
+  let response = null;
 
   client.on('data', (data) => {
-    // console.log(data.toString());
-    // console.log(splitIntoHeadersAndBody(data.toString()));
-    // client.on('data', (data) => {});
-    buffers.push(data);
-    client.end();
+    if (response) {
+      response.body += data;
+    } else {
+      response = parseResponseMessage(data);
+    }
+
+    const contentLength = Number(response.headers['Content-Length']);
+    const transferEncoding = response.headers['Transfer-Encoding'];
+
+    if (contentLength === Buffer.byteLength(response.body)) {
+      client.end();
+      return;
+    }
+
+    if (transferEncoding === 'chunked') {
+      // TODO
+      console.log(response);
+      client.end();
+    }
   });
 
   return new Promise((resolve, reject) => {
     client.on('end', () => {
-      const response = parseResponseMessage(Buffer.concat(buffers).toString());
-      console.log(Buffer.concat(buffers).toString());
-      console.log(response);
       resolve(response);
     });
 
