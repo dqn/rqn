@@ -74,13 +74,72 @@ function buildRequestMessage(method, url, options = {}) {
   ].join(CRLF);
 }
 
-function parseResponseMessage(union) {
+function parseInitialResponse(union) {
   const [ statusAndHeaders, body ] = splitOnlyOnce(union, CRLF + CRLF);
   const splitted = splitOnlyOnce(statusAndHeaders, CRLF);
   const statusCode = Number(splitted[0].match(/\d{3}/)[0]);
   const headers = parseHeaders(splitted[1]);
 
   return { statusCode, headers, body };
+}
+
+class ResponseParser {
+  constructor(client) {
+    this.client = client;
+  }
+
+  onData(data) {
+    if (!this.response) {
+      this.response = parseInitialResponse(data);
+
+      data = this.response.body;
+      this.response.body = '';
+
+      if (this.response.headers['Content-Length']) {
+        this.contentLength = Number(this.response.headers['Content-Length']);
+        this.parser = this.parseUsingContentLength;
+      } else if (this.response.headers['Transfer-Encoding'] === 'chunked') {
+        this.remainingBytes = 0;
+        this.parser = this.parseUsingChunked;
+      }
+    }
+
+    this.parser(data);
+  }
+
+  parseUsingContentLength(data) {
+    this.response.body += data;
+
+    if (this.contentLength === Buffer.byteLength(this.response.body)) {
+      this.client.end();
+    }
+  }
+
+  parseUsingChunked(data) {
+    if (this.remainingBytes === 0) {
+      const splitted = splitOnlyOnce(data, CRLF);
+      this.remainingBytes = Number.parseInt(splitted.shift(), 16);
+
+      if (this.remainingBytes === 0) {
+        this.client.end();
+        return;
+      }
+
+      this.remainingBytes += 2;
+      data = splitted.shift();
+    }
+
+    this.response.body += data;
+    this.remainingBytes -= Buffer.byteLength(data);
+  }
+
+  parse() {
+    return new Promise((resolve, reject) => {
+      this.client.on('data', this.onData.bind(this));
+      this.client.on('end', () => resolve(this.response));
+      this.client.on('error', reject);
+    });
+  }
 }
 
 function makeSocket(url) {
@@ -112,68 +171,6 @@ function makeSocket(url) {
   };
 }
 
-function receive(client) {
-  let response = null;
-  let responseType = null;
-  let contentLength = null;
-  let transferEncoding = null;
-  let remainingBytes = 0;
-
-  return new Promise((resolve, reject) => {
-    client.on('data', (data) => {
-      if (!response) {
-        response = parseResponseMessage(data);
-
-        contentLength = Number(response.headers['Content-Length']) || null;
-        transferEncoding = response.headers['Transfer-Encoding'];
-
-        if (contentLength != null) {
-          responseType = 'normal';
-        } else if (transferEncoding === 'chunked') {
-          responseType = 'chunked';
-        }
-
-        data = response.body;
-        response.body = '';
-      }
-
-      switch (responseType) {
-        case 'normal':
-          response.body += data;
-
-          if (contentLength === Buffer.byteLength(response.body)) {
-            client.end();
-            resolve(response);
-            return;
-          }
-
-          break;
-
-        case 'chunked':
-          if (remainingBytes === 0) {
-            [ remainingBytes, data ] = splitOnlyOnce(data, CRLF);
-            remainingBytes = Number.parseInt(remainingBytes, 16);
-
-            if (remainingBytes === 0) {
-              client.end();
-              resolve(response);
-              return;
-            }
-
-            remainingBytes += 2; // ???
-          }
-
-          remainingBytes -= Buffer.byteLength(data);
-          response.body += data;
-
-          break;
-      }
-    });
-
-    client.on('error', reject);
-  });
-}
-
 function request(method, uri, options) {
   const url = new URL(uri);
   const socket = makeSocket(url);
@@ -183,7 +180,7 @@ function request(method, uri, options) {
     client.write(message);
   });
 
-  return receive(client);
+  return new ResponseParser(client).parse();
 }
 
 function get(...args) {
