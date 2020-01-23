@@ -112,6 +112,68 @@ function makeSocket(url) {
   };
 }
 
+function receive(client) {
+  let response = null;
+  let responseType = null;
+  let contentLength = null;
+  let transferEncoding = null;
+  let remainingBytes = 0;
+
+  return new Promise((resolve, reject) => {
+    client.on('data', (data) => {
+      if (!response) {
+        response = parseResponseMessage(data);
+
+        contentLength = Number(response.headers['Content-Length']) || null;
+        transferEncoding = response.headers['Transfer-Encoding'];
+
+        if (contentLength != null) {
+          responseType = 'normal';
+        } else if (transferEncoding === 'chunked') {
+          responseType = 'chunked';
+        }
+
+        data = response.body;
+        response.body = '';
+      }
+
+      switch (responseType) {
+        case 'normal':
+          response.body += data;
+
+          if (contentLength === Buffer.byteLength(response.body)) {
+            client.end();
+            resolve(response);
+            return;
+          }
+
+          break;
+
+        case 'chunked':
+          if (remainingBytes === 0) {
+            [ remainingBytes, data ] = splitOnlyOnce(data, CRLF);
+            remainingBytes = Number.parseInt(remainingBytes, 16);
+
+            if (remainingBytes === 0) {
+              client.end();
+              resolve(response);
+              return;
+            }
+
+            remainingBytes += 2; // ???
+          }
+
+          remainingBytes -= Buffer.byteLength(data);
+          response.body += data;
+
+          break;
+      }
+    });
+
+    client.on('error', reject);
+  });
+}
+
 function request(method, uri, options) {
   const url = new URL(uri);
   const socket = makeSocket(url);
@@ -121,37 +183,7 @@ function request(method, uri, options) {
     client.write(message);
   });
 
-  let response = null;
-
-  client.on('data', (data) => {
-    if (response) {
-      response.body += data;
-    } else {
-      response = parseResponseMessage(data);
-    }
-
-    const contentLength = Number(response.headers['Content-Length']);
-    const transferEncoding = response.headers['Transfer-Encoding'];
-
-    if (contentLength === Buffer.byteLength(response.body)) {
-      client.end();
-      return;
-    }
-
-    if (transferEncoding === 'chunked') {
-      // TODO
-      console.log(response);
-      client.end();
-    }
-  });
-
-  return new Promise((resolve, reject) => {
-    client.on('end', () => {
-      resolve(response);
-    });
-
-    client.on('error', reject);
-  });
+  return receive(client);
 }
 
 function get(...args) {
