@@ -1,5 +1,8 @@
 # rqn
 
+[![Build Status](https://travis-ci.com/dqn/rqn.svg?branch=master)](https://travis-ci.com/dqn/rqn)
+[![codecov](https://codecov.io/gh/dqn/rqn/branch/master/graph/badge.svg)](https://codecov.io/gh/dqn/rqn)
+
 Simple HTTP client that supports HTTPS, redirect.
 
 ## Installation
