@@ -51,3 +51,7 @@ rqn.get('http://localhost:3000', { qs: { foo: 'bar' } }).then((res) => {
   console.log(res.body);
 });
 ```
+
+## License
+
+MIT
