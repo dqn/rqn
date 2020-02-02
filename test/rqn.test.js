@@ -53,6 +53,12 @@ beforeAll(() => {
     res.redirect('http://localhost:3000');
   });
 
+  app.get('/chunked', (req, res) => {
+    res.write('fizz');
+    res.write('bazz');
+    res.end();
+  });
+
   server = app.listen(3000);
 });
 
@@ -140,7 +146,7 @@ describe('get', () => {
   });
 
   test('chunked', async () => {
-    const res = await rqn.get('https://google.com');
+    const res = await rqn.get('http://localhost:3000/chunked');
 
     expect(res.statusCode).toBe(200);
     expect(res.headers).toBeDefined();
