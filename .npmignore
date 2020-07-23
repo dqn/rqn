@@ -1,0 +1,10 @@
+coverage/
+node_modules/
+src/
+test/
+.gitignore
+.prettierignore
+.prettierrc
+.travis.yml
+jest.config.js
+tsconfig.json

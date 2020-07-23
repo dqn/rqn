@@ -1,14 +1,15 @@
 # rqn
 
+[![npm version](https://img.shields.io/npm/v/rqn.svg)](https://www.npmjs.com/package/rqn)
 [![Build Status](https://travis-ci.com/dqn/rqn.svg?branch=master)](https://travis-ci.com/dqn/rqn)
 [![codecov](https://codecov.io/gh/dqn/rqn/branch/master/graph/badge.svg)](https://codecov.io/gh/dqn/rqn)
 
-Simple HTTP client that supports HTTPS, redirect.
+Simple HTTP(S) client.
 
 ## Installation
 
 ```sh
-$ npm install dqn/rqn
+$ npm install rqn
 ```
 
 ## Usage
@@ -32,9 +33,14 @@ rqn.get('http://localhost:3000', options).then((res) => {
 
 ## API
 
+### rqn.request(method, url[, options])
+
 ### rqn.get(url[, options])
+
 ### rqn.post(url[, options])
+
 ### rqn.put(url[, options])
+
 ### rqn.delete(url[, options])
 
 - `url`: `string`
