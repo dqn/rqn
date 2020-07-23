@@ -3,7 +3,7 @@ import { Server } from 'http';
 
 import * as rqn from '../src/rqn';
 
-let server: Server;
+let server: Server | null = null;
 
 beforeAll(() => {
   const app = express();
@@ -62,7 +62,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  server.close();
+  server && server.close();
 });
 
 describe('get', () => {
@@ -181,7 +181,7 @@ describe('put', () => {
 
 describe('delete', () => {
   test('normal', async () => {
-    const res = await rqn._delete('http://localhost:3000');
+    const res = await rqn.delete('http://localhost:3000');
 
     expect(res.statusCode).toBe(200);
     expect(res.headers).toBeDefined();
