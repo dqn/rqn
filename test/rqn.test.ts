@@ -1,10 +1,9 @@
-'use strict';
+import express from 'express';
+import { Server } from 'http';
 
-const rqn = require('..');
+import * as rqn from '../src/rqn';
 
-const express = require('express');
-
-let server;
+let server: Server;
 
 beforeAll(() => {
   const app = express();
@@ -182,7 +181,7 @@ describe('put', () => {
 
 describe('delete', () => {
   test('normal', async () => {
-    const res = await rqn.delete('http://localhost:3000');
+    const res = await rqn._delete('http://localhost:3000');
 
     expect(res.statusCode).toBe(200);
     expect(res.headers).toBeDefined();
