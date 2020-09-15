@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.com/dqn/rqn.svg?branch=master)](https://travis-ci.com/dqn/rqn)
 [![codecov](https://codecov.io/gh/dqn/rqn/branch/master/graph/badge.svg)](https://codecov.io/gh/dqn/rqn)
 
-Simple HTTP(S) client.
+Toy HTTP(S) client.
 
 ## Installation
 
@@ -12,7 +12,7 @@ Simple HTTP(S) client.
 $ npm install rqn
 ```
 
-## Usage
+## Example usage
 
 ```js
 const rqn = require('rqn');
@@ -23,8 +23,7 @@ const options = {
   },
 };
 
-// GET
-rqn.get('http://localhost:3000', options).then((res) => {
+rqn.get('https://example.com', { qs: { foo: 'bar' } }).then((res) => {
   console.log(res.statusCode);
   console.log(res.headers);
   console.log(res.body);
@@ -35,30 +34,52 @@ rqn.get('http://localhost:3000', options).then((res) => {
 
 ### rqn.request(method, url[, options])
 
+```js
+rqn.request('GET', 'https://example.com');
+```
+
 ### rqn.get(url[, options])
+
+```js
+rqn.get('https://example.com');
+```
+
+With query parameters:
+
+```js
+rqn.get('https://example.com', { qs: { foo: 'bar' } });
+```
 
 ### rqn.post(url[, options])
 
+Post as JSON:
+
+```js
+rqn.post('https://example.com', { json: { foo: 'bar' } });
+```
+
+Post as Form:
+
+```js
+rqn.post('https://example.com', { form: { foo: 'bar' } });
+```
+
+Post as raw body:
+
+```js
+rqn.post('https://example.com', { body: 'foobar' });
+```
+
 ### rqn.put(url[, options])
+
+```js
+rqn.put('https://example.com', { /* ... */ });
+```
 
 ### rqn.delete(url[, options])
 
-- `url`: `string`
-- `options`: `Object`
-  - `qs`: `Object`
-  - `body`: `Object`
-  - `form`: `Object`
-- Returns: `Promise<Object>`
-  - `statusCode`: `number`
-  - `headers`: `Object`
-  - `body`: `string`
-
 ```js
-rqn.get('http://localhost:3000', { qs: { foo: 'bar' } }).then((res) => {
-  console.log(res.statusCode);
-  console.log(res.headers);
-  console.log(res.body);
-});
+rqn.delete('https://example.com');
 ```
 
 ## License
