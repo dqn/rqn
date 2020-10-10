@@ -7,7 +7,7 @@
     "@types/express": "4.17.8",
     "@types/jest": "26.0.14",
     "@types/node": "14.11.8",
-    "codecov": "3.7.2",
+    "codecov": "3.8.0",
     "express": "4.17.1",
     "jest": "26.5.2",
     "ts-jest": "26.4.1",
