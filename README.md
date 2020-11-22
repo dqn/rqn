@@ -1,7 +1,7 @@
 # rqn
 
 [![npm version](https://img.shields.io/npm/v/rqn.svg)](https://www.npmjs.com/package/rqn)
-[![Build Status](https://travis-ci.com/dqn/rqn.svg?branch=master)](https://travis-ci.com/dqn/rqn)
+[![CI](https://github.com/dqn/rqn/workflows/CI/badge.svg)](https://github.com/dqn/rqn/actions)
 [![codecov](https://codecov.io/gh/dqn/rqn/branch/master/graph/badge.svg)](https://codecov.io/gh/dqn/rqn)
 
 Toy HTTP(S) client.
@@ -73,7 +73,9 @@ rqn.post('https://example.com', { body: 'foobar' });
 ### rqn.put(url[, options])
 
 ```js
-rqn.put('https://example.com', { /* ... */ });
+rqn.put('https://example.com', {
+  /* ... */
+});
 ```
 
 ### rqn.delete(url[, options])
