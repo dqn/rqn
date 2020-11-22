@@ -5,7 +5,6 @@ test/
 .gitignore
 .prettierignore
 .prettierrc
-.travis.yml
 jest.config.js
 renovate.json
 tsconfig.json
