@@ -6,7 +6,7 @@
   "devDependencies": {
     "@types/express": "4.17.11",
     "@types/jest": "26.0.23",
-    "@types/node": "14.14.44",
+    "@types/node": "14.14.45",
     "codecov": "3.8.2",
     "express": "4.17.1",
     "jest": "26.6.3",
